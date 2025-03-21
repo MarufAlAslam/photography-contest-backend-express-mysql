@@ -171,5 +171,19 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// get all photos by user ID
+router.get('/user/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [photos] = await db.query('SELECT * FROM photos WHERE user_id = ?', [id]);
+
+        res.json(photos);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 
 module.exports = router;
