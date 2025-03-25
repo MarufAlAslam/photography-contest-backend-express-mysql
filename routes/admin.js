@@ -108,4 +108,16 @@ router.put('/best/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
+// Get all contacts (Admin only)
+router.get('/contact', authenticateAdmin, async (req, res) => {
+    try {
+        const [contacts] = await db.query('SELECT * FROM contacts ORDER BY created_at DESC');
+        res.json(contacts);
+    } catch (error) {
+        console.error('Error fetching contacts:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
 module.exports = router;

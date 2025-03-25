@@ -61,10 +61,8 @@ router.post('/login', async (req, res) => {
     res.json({ token, user: { id: user[0].id, name: user[0].name, email: user[0].email } });
 });
 
-// Protected route example
 // Get user profile by ID
-// Protected route: Get user profile by ID
-router.get('/profile/:id', authenticateToken, async (req, res) => {
+router.get('/profile/:id', async (req, res) => {
     const { id } = req.params;
 
     if (!id) {
