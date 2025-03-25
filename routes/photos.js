@@ -31,6 +31,18 @@ router.get('/', async (req, res) => {
     }
 });
 
+
+// Public Route: Get all photos where approved is 1
+router.get('/approved', async (req, res) => {
+    try {
+        const [photos] = await db.query('SELECT * FROM photos WHERE approved = 1');
+        res.json(photos);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 // Protected Route: Upload a new photo (with JWT)
 router.post('/upload', authenticateToken, upload.single('photo'), async (req, res) => {
     const { description, name, place, species_type, scenic, length, weight, lure, awards } = req.body;
