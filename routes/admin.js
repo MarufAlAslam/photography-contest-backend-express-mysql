@@ -120,4 +120,16 @@ router.get('/contact', authenticateAdmin, async (req, res) => {
 });
 
 
+// get all users, public
+router.get('/users', authenticateAdmin, async (req, res) => {
+    try {
+        const [users] = await db.query('SELECT * FROM users');
+        res.json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
 module.exports = router;
