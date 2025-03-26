@@ -120,6 +120,27 @@ router.get('/contact', authenticateAdmin, async (req, res) => {
 });
 
 
+// change admin password
+router.put('/change-password', authenticateAdmin, async (req, res) => {
+    const { password, newPassword } = req.body;
+
+    try {
+        const [admin] = await db.query('SELECT * FROM admins WHERE id = ?', [req.user.id]); // req.user.id comes from the access_token
+        if (admin.length === 0) return res.status(404).json({ message: 'Admin not found' });
+
+        const isMatch = await bcrypt.compare(password, admin[0].password);
+        if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
+
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+        await db.query('UPDATE admins SET password = ? WHERE id = ?', [hashedPassword, req.user.id]);
+        res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
 // get all users, public
 router.get('/users', authenticateAdmin, async (req, res) => {
     try {
@@ -141,7 +162,7 @@ router.put('/approve/:id', authenticateAdmin, async (req, res) => {
 
         const newStatus = photo[0].approved === 1 ? 0 : 1;
         await db.query('UPDATE photos SET approved = ? WHERE id = ?', [newStatus, id]);
-        res.json({ message: `Photo ${newStatus === 1 ? 'approved' : 'rejected'}` , status: newStatus });
+        res.json({ message: `Photo ${newStatus === 1 ? 'approved' : 'rejected'}`, status: newStatus });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal server error' });
