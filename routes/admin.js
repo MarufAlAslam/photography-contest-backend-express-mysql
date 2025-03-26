@@ -57,17 +57,17 @@ router.get('/photos', authenticateAdmin, async (req, res) => {
 });
 
 // Approve Photos - Protected
-router.put('/approve/:id', authenticateAdmin, async (req, res) => {
-    const { id } = req.params;
+// router.put('/approve/:id', authenticateAdmin, async (req, res) => {
+//     const { id } = req.params;
 
-    try {
-        await db.query('UPDATE photos SET approved = 1 WHERE id = ?', [id]);
-        res.json({ message: 'Photo approved successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-});
+//     try {
+//         await db.query('UPDATE photos SET approved = 1 WHERE id = ?', [id]);
+//         res.json({ message: 'Photo approved successfully' });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'Internal server error' });
+//     }
+// });
 
 // Reject Photos - Protected
 router.put('/reject/:id', authenticateAdmin, async (req, res) => {
@@ -125,6 +125,23 @@ router.get('/users', authenticateAdmin, async (req, res) => {
     try {
         const [users] = await db.query('SELECT * FROM users');
         res.json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// update image approve status
+router.put('/approve/:id', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [photo] = await db.query('SELECT approved FROM photos WHERE id = ?', [id]);
+        if (photo.length === 0) return res.status(404).json({ message: 'Photo not found' });
+
+        const newStatus = photo[0].approved === 1 ? 0 : 1;
+        await db.query('UPDATE photos SET approved = ? WHERE id = ?', [newStatus, id]);
+        res.json({ message: `Photo ${newStatus === 1 ? 'approved' : 'rejected'}` , status: newStatus });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal server error' });
