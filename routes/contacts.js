@@ -1,5 +1,7 @@
 const express = require('express');
 const db = require('../models/db');
+const transporter = require('../utils/mailer');
+
 
 const router = express.Router();
 
@@ -16,6 +18,24 @@ router.post('/', async (req, res) => {
             'INSERT INTO contacts (firstName, lastName, email, mobile, address, message) VALUES (?, ?, ?, ?, ?, ?)',
             [firstName, lastName, email, mobile, address, message]
         );
+
+
+        // Send email to admin
+        await transporter.sendMail({
+            from: `"Contact Form" <${process.env.SMTP_USER}>`,
+            to: process.env.ADMIN_EMAIL, // Admin email
+            subject: "New Contact Form Submission",
+            html: `
+                <h3>New Contact Form Submission</h3>
+                <p><strong>First Name:</strong> ${firstName}</p>
+                <p><strong>Last Name:</strong> ${lastName}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Mobile:</strong> ${mobile}</p>
+                <p><strong>Address:</strong> ${address}</p>
+                <p><strong>Message:</strong></p>
+                <p>${message}</p>
+            `
+        });
 
         res.status(201).json({ message: 'Contact form submitted successfully!' });
     } catch (error) {

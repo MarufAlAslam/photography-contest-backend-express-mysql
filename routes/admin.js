@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../models/db');
 const { authenticateAdmin } = require('../middlewares/adminMiddleware');
+const transporter = require('../utils/mailer');
+
 
 const router = express.Router();
 const saltRounds = 10;
@@ -38,6 +40,23 @@ router.post('/add', authenticateAdmin, async (req, res) => {
 
     try {
         await db.query('INSERT INTO admins (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+
+        // Send welcome email to admin
+        await transporter.sendMail({
+            from: `"Your App Admin Panel" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: "Welcome to Admin Panel",
+            html: `
+                <h3>Hi ${name},</h3>
+                <p>You’ve been added as an administrator to our platform.</p>
+                <p>You can now login and manage the system.</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Password:</strong> (the one you set)</p>
+                <br />
+                <p>Best Regards,<br>Your Team</p>
+            `
+        });
+
         res.status(201).json({ message: 'Admin added successfully' });
     } catch (error) {
         console.error(error);
@@ -133,6 +152,22 @@ router.put('/change-password', authenticateAdmin, async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
         await db.query('UPDATE admins SET password = ? WHERE id = ?', [hashedPassword, req.user.id]);
+
+
+        // Send email notification
+        await transporter.sendMail({
+            from: `"Your App Admin Panel" <${process.env.SMTP_USER}>`,
+            to: admin[0].email,
+            subject: "Password Changed",
+            html: `
+                <h3>Hi ${admin[0].name},</h3>
+                <p>Your password has been changed successfully.</p>
+                <p>If you did not request this change, please contact support immediately.</p>
+                <br />
+                <p>Best Regards,<br>Your Team</p>
+            `
+        });
+
         res.json({ message: 'Password changed successfully' });
     } catch (error) {
         console.error(error);
@@ -163,6 +198,24 @@ router.put('/approve/:id', authenticateAdmin, async (req, res) => {
         const newStatus = photo[0].approved === 1 ? 0 : 1;
         await db.query('UPDATE photos SET approved = ? WHERE id = ?', [newStatus, id]);
         res.json({ message: `Photo ${newStatus === 1 ? 'approved' : 'rejected'}`, status: newStatus });
+
+
+        // Send email notification to user
+        const [user] = await db.query('SELECT email FROM users WHERE id = (SELECT user_id FROM photos WHERE id = ?)', [id]);
+        if (user.length > 0) {
+            await transporter.sendMail({
+                from: `"Your App Admin Panel" <${process.env.SMTP_USER}>`,
+                to: user[0].email,
+                subject: `Photo ${newStatus === 1 ? 'Approved' : 'Rejected'}`,
+                html: `
+                    <h3>Hi,</h3>
+                    <p>Your photo has been ${newStatus === 1 ? 'approved' : 'rejected'}.</p>
+                    <br />
+                    <p>Best Regards,<br>Your Team</p>
+                `
+            });
+        }
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal server error' });

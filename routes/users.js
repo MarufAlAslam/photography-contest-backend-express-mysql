@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../models/db');
 const { authenticateToken } = require('../middlewares/authMiddleware');
+const transporter = require('../utils/mailer'); // import mailer
 require('dotenv').config();
 
 const router = express.Router();
@@ -27,6 +28,14 @@ router.post('/register', async (req, res) => {
 
     // Insert user into database
     await db.query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+
+    // Send welcome email
+    await transporter.sendMail({
+        from: `"Photo Contest Agency" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: "Welcome to Our App!",
+        html: `<h3>Hi ${name},</h3><p>Thanks for signing up! We're excited to have you on board.</p>`
+    });
 
     res.status(201).json({ message: 'User registered successfully' });
 });
